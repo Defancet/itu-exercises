@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html>
+<head>
+    <title> ITU ajax </title>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2"/>
+    <style type="text/css">
+        div, input {
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chatArea" style="height: 300px; border: solid #aaa 1px; overflow:auto;"></div>
+
+<form onsubmit="return uploadData()">
+    <input type="text" id="userName" placeholder="Type your name" value="xlogin00">
+    <input type="text" id="newMessageString" placeholder="Type your message">
+    <input type="submit" value="send">
+</form>
+
+<div id="status" style="border: solid #aaa 1px; ">&nbsp;</div>
+
+<script type="text/javascript">
+
+    /***
+     * XMLHttpRequest object constructor (for compatibility with various browsers)
+     */
+
+    const ids = [];
+    function createXmlHttpRequestObject() {
+        var request;
+
+        try {
+            request = new XMLHttpRequest(); // should work on all browsers except IE6 or older
+        } catch (e) {
+            try {
+                request = new ActiveXObject("Microsoft.XMLHttp");
+            } catch (e) {
+                // ignore error
+            }
+        }
+
+        if (!request) {
+            alert("Error creating the XMLHttpRequest object.");
+        } else {
+            return request;
+        }
+    }
+
+    function uploadData() {
+        var userName = document.getElementById("userName").value;
+        var newMessage = document.getElementById("newMessageString").value;
+
+        try {
+            if (userName && newMessage) {
+                var request = createXmlHttpRequestObject(); // stores XMLHttpRequestObject
+                request.open("POST", "https://pckiss.fit.vutbr.cz/itu/api.php", true);
+                request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                request.onreadystatechange = function () {
+                    if (request.readyState == 4 && request.status == 200) {
+                        document.getElementById("status").innerHTML = "Message sent";
+                        document.getElementById("newMessageString").value = "";
+                        downloadData();
+                    }
+                }
+                request.send("user=" + encodeURIComponent(userName) + "&data=" + encodeURIComponent(newMessage));
+            }
+        } catch (e) {
+            alert(e.toString());
+        }
+
+        return false; // to avoid default form submit behavior
+    }
+
+    function downloadData() {
+        try {
+            var request = createXmlHttpRequestObject();
+            request.open("GET", "https://pckiss.fit.vutbr.cz/itu/api.php", true);
+            request.onreadystatechange = function () {
+                if (request.readyState === 4 && request.status === 200) {
+                    var chatArea = document.getElementById("chatArea");
+                    var messages = JSON.parse(request.responseText);
+
+                    for (var i in messages) {
+                        var message = messages[i];
+
+                        if (!ids.includes(message.id)) {
+                            ids.push(message.id);
+                            var messageElement = document.createElement("div");
+                            messageElement.innerHTML = message.id + ' ' + message.login + ': ' + message.cnt;
+                            chatArea.appendChild(messageElement);
+                        }
+                    }
+                    chatArea.scrollTop = chatArea.scrollHeight;
+                }
+            }
+            request.send(null);
+        } catch (e) {
+            alert(e.toString());
+        }
+    }
+
+
+    downloadData();
+    setInterval(downloadData, 3000);
+
+</script>
+</body>
+</html>
